@@ -60,6 +60,14 @@ async def no_cache_middleware(request: web.Request, handler):
     return response
 
 
+def panel_ok(request: web.Request) -> bool:
+    """Проверяет секрет админ-панели: заголовок X-Panel-Secret или ?secret=."""
+    if not cfg.PANEL_SECRET:
+        return False
+    supplied = request.headers.get("X-Panel-Secret") or request.query.get("secret", "")
+    return hmac.compare_digest(str(supplied), cfg.PANEL_SECRET)
+
+
 @web.middleware
 async def auth_middleware(request: web.Request, handler):
     # /api/panel/* — свой доступ по секрету (админ-бот), initData не нужен
