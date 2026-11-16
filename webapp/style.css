@@ -900,50 +900,64 @@ body::after {
   gap: 8px;
   margin: 12px 0 4px;
 }
-.dp-time-row {
+.dp-tlabel {
+  margin: 14px 2px 0;
+  font-size: calc(11.5px * var(--fs, 1));
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--text-faint);
+}
+.dp-tgrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+.dp-tcell {
+  height: 38px;
+  border-radius: 11px;
+  font-size: calc(13.5px * var(--fs, 1));
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--text-dim);
+  background: var(--soft-fill);
+  border: 1px solid var(--hairline);
+  box-shadow: inset 0 1px 0 var(--inset-hl);
+  transition: transform .12s ease, background .15s ease;
+}
+.dp-tcell--on {
+  color: #fff;
+  background: var(--grad);
+  border-color: transparent;
+  box-shadow:
+    var(--accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+.dp-min-adj {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 12px 2px 0;
+  gap: 8px;
+  margin-top: 10px;
 }
-.dp-time-input {
-  height: 38px;
-  padding: 0 12px;
-  border-radius: 12px;
-  font-size: calc(15px * var(--fs, 1));
-  font-weight: 700;
-  font-family: inherit;
-  color: var(--text);
-  background: var(--soft-fill);
-  border: 1px solid var(--hairline);
-  box-shadow: inset 0 1px 0 var(--inset-hl);
-  color-scheme: light dark;
-}
-.dp-time-select {
-  height: 40px;
-  padding: 0 10px;
-  border-radius: 12px;
-  font-size: calc(16px * var(--fs, 1));
-  font-weight: 700;
-  font-family: inherit;
-  color: var(--text);
-  background: var(--soft-fill);
-  border: 1px solid var(--hairline);
-  box-shadow: inset 0 1px 0 var(--inset-hl);
-  appearance: none;
-  -webkit-appearance: none;
-  text-align: center;
-  text-align-last: center;
-}
-.dp-time-select:focus { outline: none; border-color: var(--accent, #8A2BE2); }
-.dp-time-colon {
-  font-size: calc(16px * var(--fs, 1));
-  font-weight: 800;
-  color: var(--text-faint);
-}
-.dp-time-cap {
+.dp-min-btn {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--r-full);
   font-size: calc(12.5px * var(--fs, 1));
-  color: var(--text-faint);
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--text-dim);
+  background: var(--soft-fill);
+  border: 1px solid var(--hairline);
+  box-shadow: inset 0 1px 0 var(--inset-hl);
+}
+.dp-time-display {
+  margin-left: auto;
+  font-size: calc(17px * var(--fs, 1));
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent, #8A2BE2);
 }
 .chip-t {
   height: 34px;
