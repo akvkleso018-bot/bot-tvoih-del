@@ -45,16 +45,16 @@ TZ = ZoneInfo(TIMEZONE)
 # tier -> period -> {"stars": цена, "days": длительность (0 = навсегда)}
 SUBSCRIPTION_PLANS: dict = {
     "regular": {
-        "week":    {"stars": 150,  "days": 7},
-        "month":   {"stars": 400,  "days": 30},
-        "year":    {"stars": 1300, "days": 365},
-        "forever": {"stars": 3000, "days": 0},
+        "week":    {"stars": 99,   "days": 7},
+        "month":   {"stars": 249,  "days": 30},
+        "year":    {"stars": 990,  "days": 365},
+        "forever": {"stars": 1990, "days": 0},
     },
     "elite": {
-        "week":    {"stars": 350,  "days": 7},
-        "month":   {"stars": 800,  "days": 30},
-        "year":    {"stars": 2500, "days": 365},
-        "forever": {"stars": 4500, "days": 0},
+        "week":    {"stars": 149,  "days": 7},
+        "month":   {"stars": 449,  "days": 30},
+        "year":    {"stars": 1490, "days": 365},
+        "forever": {"stars": 2990, "days": 0},
     },
 }
 PERIOD_TITLES = {"week": "неделя", "month": "месяц", "year": "год", "forever": "навсегда"}
