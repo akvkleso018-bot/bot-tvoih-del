@@ -133,6 +133,7 @@
       ideaTitle: "Предложить идею", ideaSub: "Какую функцию добавить в «Бот твоих дел»?",
       ideaPlaceholder: "Твоя идея…", send: "Отправить", ideaNote: "Идея прилетит разработчику напрямую.",
       ideaSent: "Идея отправлена! Спасибо", ideaLimit: "У тебя уже 3 идеи на рассмотрении — дождись ответа", ideaFail: "Не удалось отправить идею",
+      ideaTooLong: "Максимум 500 символов — сократи идею", timeFree: "Любое время",
       settings: "Настройки", lang: "Язык", theme: "Тема", accent: "Акцентный цвет", font: "Шрифт",
       fontSize: "Размер текста", glassStrength: "Стекло (блюр)",
       animations: "Анимации", haptic: "Виброотклик", timeFormat: "12-часовой формат", weekStart: "Неделя начинается с воскресенья",
@@ -198,6 +199,7 @@
       ideaTitle: "Suggest an idea", ideaSub: "What feature should we add to Your Deals Bot?",
       ideaPlaceholder: "Your idea…", send: "Send", ideaNote: "Your idea goes straight to the developer.",
       ideaSent: "Idea sent! Thanks", ideaLimit: "You already have 3 ideas pending — wait for a reply", ideaFail: "Could not send the idea",
+      ideaTooLong: "Max 500 characters — shorten your idea", timeFree: "Any time",
       settings: "Settings", lang: "Language", theme: "Theme", accent: "Accent color", font: "Font",
       fontSize: "Text size", glassStrength: "Glass blur",
       animations: "Animations", haptic: "Haptic feedback", timeFormat: "12-hour time", weekStart: "Week starts on Sunday",
@@ -242,7 +244,7 @@
     var r = document.documentElement;
     r.setAttribute("data-theme", s.theme);
     r.setAttribute("data-fs", s.fs);
-    r.setAttribute("data-blur", isOn(s.blur) ? "on" : "off");
+    r.setAttribute("data-blur", "on"); /* стекло всегда включено */
     r.setAttribute("data-anim", isOn(s.anim) ? "on" : "off");
     if (s.accent !== "auto" && ACCENTS[s.accent]) {
       var a = ACCENTS[s.accent];
@@ -476,6 +478,7 @@
     var submit = function () {
       var t = text[0].trim();
       if (t.length < 3 || busy[0]) return;
+      if (t.length > 500) { props.onToast(t("ideaTooLong")); return; }
       haptic("medium");
       busy[1](true);
       api.post("/api/suggest", { text: t })
@@ -487,9 +490,11 @@
         })
         .catch(function (e) {
           busy[1](false);
-          props.onToast(e.code === "too_many_pending" ? t("ideaLimit") : t("ideaFail"));
+          props.onToast(e.code === "too_long" ? t("ideaTooLong") : e.code === "too_many_pending" ? t("ideaLimit") : t("ideaFail"));
         });
     };
+
+    var over = text[0].length > 500;
 
     return html`
       <div className="overlay" onClick=${props.onClose}>
@@ -502,8 +507,8 @@
             placeholder=${t("ideaPlaceholder")}
             value=${text[0]}
             onInput=${function (e) { text[1](e.target.value); }}></textarea>
-          <div className="input-cap">${text[0].length}/500</div>
-          <button className=${"btn-gradient pressable" + (text[0].trim().length < 3 || busy[0] ? " btn-gradient--dis" : "")}
+          <div className=${"input-cap" + (over ? " input-cap--over" : "")}>${text[0].length}/500</div>
+          <button className=${"btn-gradient pressable" + (text[0].trim().length < 3 || over || busy[0] ? " btn-gradient--dis" : "")}
             onClick=${submit}>${t("send")}</button>
           <div className="sheet-note">${t("ideaNote")}</div>
         </div>
@@ -1088,10 +1093,6 @@
           </div>
 
           <div className="set-section">
-            <button type="button" className="set-row pressable" onClick=${function () { tog("blur", isOn(cur.blur)); }}>
-              <span>${t("glassStrength")}</span>
-              <${Toggle} on=${isOn(cur.blur)} />
-            </button>
             <button type="button" className="set-row pressable" onClick=${function () { tog("anim", isOn(cur.anim)); }}>
               <span>${t("animations")}</span>
               <${Toggle} on=${isOn(cur.anim)} />
@@ -1502,6 +1503,13 @@
                   disabled=${past}
                   onClick=${function () { haptic("light"); sel[1]({ y: y, m: m, d: day }); }}>${day}</button>`;
             })}
+          </div>
+
+          <div className="dp-time-row">
+            <input type="time" className="dp-time-input"
+              value=${time[0]}
+              onInput=${function (e) { var v = String(e.target.value || ""); if (v) { haptic("light"); time[1](v); } }} />
+            <span className="dp-time-cap">${t("timeFree")}</span>
           </div>
 
           <div className="dp-chips">
