@@ -52,6 +52,7 @@ MENU = (
     "/payments — последние платежи\n"
     "/suggestions — идеи пользователей\n"
     "/broadcast &lt;текст&gt; — рассылка всем\n"
+    "/topreset — сбросить топ недели\n"
     "/ping — статус системы"
 )
 
@@ -303,6 +304,27 @@ async def cmd_users(m: Message, db: Database):
     await m.answer(text, reply_markup=users_kb(0, total))
 
 
+@router.message(Command("topreset"))
+async def cmd_topreset(m: Message, db: Database):
+    from bot.profile import week_bounds
+
+    ws, we = week_bounds()
+    top = await db.weekly_leaderboard(ws, we, limit=3)
+    if not top:
+        await m.answer("🏆 Топ недели и так пуст — сбрасывать нечего.")
+        return
+    lines = ["🏆 <b>Текущий топ недели:</b>", ""]
+    for i, r in enumerate(top, 1):
+        pts = r["on_time"] * 10 + r["late"] * 3
+        lines.append(f"  {i}. {esc(r['first_name'] or 'Игрок')} — {pts} очков")
+    lines += ["", "Очки, набранные до сброса, обнулятся (у пользователей не изменятся подписки).", "Точно сбросить?"]
+    confirm = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🗑 Да, сбросить", callback_data="p:tr:yes"),
+        InlineKeyboardButton(text="❌ Нет", callback_data="p:tr:no"),
+    ]])
+    await m.answer("\n".join(lines), reply_markup=confirm)
+
+
 @router.message(Command("broadcast"))
 async def cmd_broadcast(m: Message):
     parts = (m.text or "").split(maxsplit=1)
@@ -452,6 +474,23 @@ async def on_press(cb: CallbackQuery, db: Database, main_bot: Bot, admin_bot: Bo
                 pass
             # уведомляем автора идеи через основной бот
             await _notify_author(main_bot, sg, "done" if act == "ok" else "declined")
+        return
+
+    if act == "tr":
+        if parts[2] != "yes":
+            await cb.message.edit_text("Сброс топа отменён.")
+            await cb.answer("Отменено")
+            return
+        ts = await db.reset_top()
+        from datetime import datetime as _dt
+
+        when = _dt.fromtimestamp(ts).strftime("%d.%m.%Y %H:%M")
+        await cb.message.edit_text(
+            f"🗑 Топ недели сброшен ({when}).\n"
+            "Очки считаются заново — только за задачи, выполненные после сброса.\n"
+            "Награды и подписки пользователей не тронуты."
+        )
+        await cb.answer("Сброшено")
         return
 
     if act == "bcno":
