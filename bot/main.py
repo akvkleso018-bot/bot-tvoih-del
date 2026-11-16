@@ -70,6 +70,7 @@ async def main() -> None:
                 BotCommand(command="payments", description="Последние платежи"),
                 BotCommand(command="suggestions", description="Идеи пользователей"),
                 BotCommand(command="broadcast", description="Рассылка: /broadcast <текст>"),
+                BotCommand(command="topreset", description="Сбросить топ недели"),
                 BotCommand(command="ping", description="Статус системы"),
             ])
         except Exception:
