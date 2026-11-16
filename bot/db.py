@@ -555,6 +555,10 @@ class Database:
         await self.conn.commit()
         return cur.lastrowid
 
+    async def get_suggestion(self, sid: int):
+        row = await self._one("SELECT * FROM suggestions WHERE id = ?", (sid,))
+        return dict(row) if row else None
+
     async def pending_suggestions_count(self, user_id: int) -> int:
         row = await self._one(
             "SELECT COUNT(*) AS c FROM suggestions WHERE user_id = ? AND status = 'new'",
@@ -583,6 +587,20 @@ class Database:
     async def all_user_ids(self) -> list[int]:
         rows = await self._all("SELECT telegram_id FROM users")
         return [r["telegram_id"] for r in rows]
+
+    async def list_users(self) -> list[dict]:
+        """Все пользователи для админ-бота (новые сверху)."""
+        rows = await self._all(
+            "SELECT * FROM users ORDER BY (premium_until > 0) DESC, created_at DESC"
+        )
+        return [dict(r) for r in rows]
+
+    async def user_by_username(self, username: str):
+        row = await self._one(
+            "SELECT * FROM users WHERE username IS NOT NULL AND lower(username) = lower(?)",
+            (username.lstrip("@"),),
+        )
+        return dict(row) if row else None
 
     async def stars_sum(self, since_ts: int | None = None) -> int:
         if since_ts is None:
