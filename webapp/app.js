@@ -506,9 +506,14 @@
           <textarea className="glass-input" rows="4" maxLength="500"
             placeholder=${t("ideaPlaceholder")}
             value=${text[0]}
-            onInput=${function (e) { text[1](e.target.value); }}></textarea>
+            onInput=${function (e) {
+              var v = String(e.target.value || "");
+              if (v.length > 500) v = v.slice(0, 500); /* жёсткий срез: paste/автозаполнение обходят maxLength */
+              text[1](v);
+            }}></textarea>
           <div className=${"input-cap" + (over ? " input-cap--over" : "")}>${text[0].length}/500</div>
           <button className=${"btn-gradient pressable" + (text[0].trim().length < 3 || over || busy[0] ? " btn-gradient--dis" : "")}
+            disabled=${text[0].trim().length < 3 || over || busy[0]}
             onClick=${submit}>${t("send")}</button>
           <div className="sheet-note">${t("ideaNote")}</div>
         </div>
@@ -1384,6 +1389,8 @@
   }
 
   var TIME_CHIPS = ["09:00", "13:00", "18:00", "21:00", "23:59"];
+  var DP_HOURS = (function () { var a = []; for (var h = 0; h < 24; h++) a.push(pad2(h)); return a; })();
+  var DP_MINS = (function () { var a = []; for (var m2 = 0; m2 < 60; m2++) a.push(pad2(m2)); return a; })();
 
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
 
@@ -1506,9 +1513,17 @@
           </div>
 
           <div className="dp-time-row">
-            <input type="time" className="dp-time-input"
-              value=${time[0]}
-              onInput=${function (e) { var v = String(e.target.value || ""); if (v) { haptic("light"); time[1](v); } }} />
+            <select className="dp-time-select"
+              value=${tp[0]}
+              onChange=${function (e) { haptic("light"); time[1](e.target.value + ":" + tp[1]); }}>
+              ${DP_HOURS.map(function (h) { return html`<option key=${h} value=${h}>${h}</option>`; })}
+            </select>
+            <span className="dp-time-colon">:</span>
+            <select className="dp-time-select"
+              value=${tp[1]}
+              onChange=${function (e) { haptic("light"); time[1](tp[0] + ":" + e.target.value); }}>
+              ${DP_MINS.map(function (m3) { return html`<option key=${m3} value=${m3}>${m3}</option>`; })}
+            </select>
             <span className="dp-time-cap">${t("timeFree")}</span>
           </div>
 
