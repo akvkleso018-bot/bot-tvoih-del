@@ -20,6 +20,20 @@ def _bool(name: str, default: str = "false") -> bool:
 BOT_TOKEN: str = os.getenv("USER_BOT_TOKEN") or os.getenv("BOT_TOKEN", "")
 ADMIN_ID: int = int(os.getenv("ADMIN_ID", "0"))
 
+
+def _id_set(name: str) -> set[int]:
+    """Список ID через запятую: ADMIN_IDS=111,222,333"""
+    out: set[int] = set()
+    for part in os.getenv(name, "").replace(";", ",").split(","):
+        part = part.strip()
+        if part.lstrip("-").isdigit():
+            out.add(int(part))
+    return out
+
+
+# Главный админ + дополнительные (ADMIN_IDS): админ-бот и /api/admin доступны всем из списка
+ADMIN_IDS: set[int] = ({ADMIN_ID} if ADMIN_ID else set()) | _id_set("ADMIN_IDS")
+
 WEBAPP_URL: str = os.getenv("WEBAPP_URL", "https://example.com/webapp")
 HOST: str = os.getenv("HOST", "0.0.0.0")
 PORT: int = int(os.getenv("PORT", "8080"))
