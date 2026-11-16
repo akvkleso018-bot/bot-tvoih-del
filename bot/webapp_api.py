@@ -150,14 +150,14 @@ async def tasks_get(request: web.Request) -> web.Response:
         task_limit=task_limit,
         created_today=await db.count_created_today(uid, day_start),
         panic_active=panic_active(),
-        is_admin=(uid == cfg.ADMIN_ID),
+        is_admin=(uid in cfg.ADMIN_IDS),
         friend_requests=await db.incoming_requests_count(uid),
     )
 
 
 async def admin_stats(request: web.Request) -> web.Response:
     """РЎС‚Р°С‚РёСЃС‚РёРєР° Р±РѕС‚Р° вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ Р°РґРјРёРЅР° (РїСЂРѕРІРµСЂРєР° РЅР° СЃРµСЂРІРµСЂРµ)."""
-    if request.get("user_id") != cfg.ADMIN_ID:
+    if request.get("user_id") not in cfg.ADMIN_IDS:
         return err("forbidden", 403)
     db: Database = request.app["db"]
     return ok(
@@ -209,13 +209,13 @@ async def suggest_post(request: web.Request) -> web.Response:
 
 
 async def admin_suggestions(request: web.Request) -> web.Response:
-    if request.get("user_id") != cfg.ADMIN_ID:
+    if request.get("user_id") not in cfg.ADMIN_IDS:
         return err("forbidden", 403)
     return ok(suggestions=await request.app["db"].active_suggestions())
 
 
 async def admin_suggestion_status(request: web.Request) -> web.Response:
-    if request.get("user_id") != cfg.ADMIN_ID:
+    if request.get("user_id") not in cfg.ADMIN_IDS:
         return err("forbidden", 403)
     db: Database = request.app["db"]
     try:
