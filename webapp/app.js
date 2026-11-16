@@ -218,7 +218,7 @@
 
   var SETTINGS_KEY = "btd_settings_v1";
   var SETTINGS_DEFAULTS = {
-    theme: "light", accent: "auto", font: "system", fs: "m", lang: "ru",
+    theme: "dark", accent: "auto", font: "system", fs: "m", lang: "ru",
     blur: "on", anim: "on", haptic: "on", time12: false, weekSun: false
   };
 
@@ -244,7 +244,7 @@
 
   function applySettings(s) {
     var r = document.documentElement;
-    r.setAttribute("data-theme", s.theme);
+    r.setAttribute("data-theme", "dark"); /* светлая тема удалена — приложение всегда тёмное */
     r.setAttribute("data-fs", s.fs);
     r.setAttribute("data-blur", "on"); /* стекло всегда включено */
     r.setAttribute("data-anim", isOn(s.anim) ? "on" : "off");
@@ -260,7 +260,7 @@
       });
     }
     r.style.setProperty("--font", FONTS[s.font] ? FONTS[s.font].css : FONTS.system.css);
-    var meta = THEME_META[s.theme] || THEME_META.light;
+    var meta = THEME_META.dark;
     try { if (tg.setHeaderColor) tg.setHeaderColor(meta.header); } catch (e) {}
     try { if (tg.setBackgroundColor) tg.setBackgroundColor(meta.bg); } catch (e) {}
   }
@@ -1047,20 +1047,6 @@
           </div>
 
           <div className="set-section">
-            <div className="set-label">${t("theme")}</div>
-            <div className="theme-grid">
-              ${Object.keys(THEME_META).map(function (id) {
-                return html`<button type="button" key=${id}
-                  className=${"theme-card pressable" + (cur.theme === id ? " theme-card--on" : "")}
-                  onClick=${function () { ch({ theme: id }); }}>
-                  <div className="theme-prev" style=${{ background: THEME_META[id].prev }}></div>
-                  <div className="theme-name">${THEME_NAMES[cur.lang][id]}</div>
-                </button>`;
-              })}
-            </div>
-          </div>
-
-          <div className="set-section">
             <div className="set-label">${t("accent")}</div>
             <div className="dot-row">
               <button type="button" key="auto"
@@ -1486,11 +1472,41 @@
       dayName = seld.getTime() === tm.getTime() ? t("tomorrow") : monthShort(seld);
     }
 
+    /* свайп вниз по шапке шита — закрыть без применения */
+    var sheetRef = useRef(null);
+    var drag = useRef(null);
+    var onDragStart = function (e) {
+      drag.current = { y0: e.touches[0].clientY, dy: 0 };
+    };
+    var onDragMove = function (e) {
+      if (!drag.current || !sheetRef.current) return;
+      var dy = e.touches[0].clientY - drag.current.y0;
+      if (dy < 0) dy = 0;
+      drag.current.dy = dy;
+      sheetRef.current.style.transition = "none";
+      sheetRef.current.style.transform = "translateY(" + dy + "px)";
+    };
+    var onDragEnd = function () {
+      if (!drag.current || !sheetRef.current) return;
+      var dy = drag.current.dy;
+      drag.current = null;
+      sheetRef.current.style.transition = "transform .22s ease";
+      if (dy > 90) {
+        sheetRef.current.style.transform = "translateY(110%)";
+        haptic("light");
+        setTimeout(function () { props.onClose(); }, 180);
+      } else {
+        sheetRef.current.style.transform = "translateY(0)";
+      }
+    };
+
     return html`
       <div className="overlay" onClick=${props.onClose}>
-        <div className="sheet" onClick=${function (e) { e.stopPropagation(); }}>
-          <div className="sheet-handle"></div>
-          <div className="sheet-title">${t("deadlineTitle")}</div>
+        <div className="sheet" onClick=${function (e) { e.stopPropagation(); }} ref=${sheetRef}>
+          <div className="sheet-grip" onTouchStart=${onDragStart} onTouchMove=${onDragMove} onTouchEnd=${onDragEnd} onTouchCancel=${onDragEnd}>
+            <div className="sheet-handle"></div>
+            <div className="sheet-title">${t("deadlineTitle")}</div>
+          </div>
 
           <div className="dp-head">
             <button className=${"dp-nav pressable" + (canPrev ? "" : " dp-nav--off")}
@@ -1588,7 +1604,7 @@
     }, []);
 
     var resetSettings = useCallback(function () {
-      saveSettings({ theme: "light", accent: "auto", font: "system", fs: "m", blur: "on", anim: "on", haptic: "on", time12: false, weekSun: false });
+      saveSettings({ theme: "dark", accent: "auto", font: "system", fs: "m", blur: "on", anim: "on", haptic: "on", time12: false, weekSun: false });
       sVer[1](function (x) { return x + 1; });
       showToast(t("resetDone"));
     }, [showToast]);
