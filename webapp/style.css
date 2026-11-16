@@ -1350,6 +1350,13 @@ body::after {
   background: var(--hairline3);
 }
 
+/* зона свайпа-вниз для закрытия шита (ручка + заголовок) */
+.sheet-grip {
+  touch-action: none;
+  cursor: grab;
+  padding-bottom: 4px;
+}
+
 .sheet-glow {
   position: absolute;
   top: -70px;
