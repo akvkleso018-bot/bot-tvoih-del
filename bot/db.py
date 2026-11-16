@@ -584,6 +584,49 @@ class Database:
         rows = await self._all("SELECT telegram_id FROM users")
         return [r["telegram_id"] for r in rows]
 
+    async def stars_sum(self, since_ts: int | None = None) -> int:
+        if since_ts is None:
+            row = await self._one("SELECT COALESCE(SUM(stars), 0) AS c FROM payments")
+        else:
+            row = await self._one(
+                "SELECT COALESCE(SUM(stars), 0) AS c FROM payments WHERE created_at >= ?",
+                (since_ts,),
+            )
+        return row["c"]
+
+    async def new_users_count(self, since_ts: int) -> int:
+        row = await self._one(
+            "SELECT COUNT(*) AS c FROM users WHERE created_at >= ?", (since_ts,)
+        )
+        return row["c"]
+
+    async def user_detail(self, uid: int) -> dict | None:
+        row = await self.get_user(uid)
+        if not row:
+            return None
+        tasks = await self._one(
+            """SELECT
+                 COUNT(*)                                                                          AS total,
+                 COALESCE(SUM(CASE WHEN done = 0 THEN 1 ELSE 0 END), 0)                            AS active,
+                 COALESCE(SUM(CASE WHEN done = 1 THEN 1 ELSE 0 END), 0)                            AS completed
+               FROM tasks WHERE user_id = ?""",
+            (uid,),
+        )
+        pays = await self._one(
+            "SELECT COUNT(*) AS n, COALESCE(SUM(stars), 0) AS stars FROM payments WHERE user_id = ?",
+            (uid,),
+        )
+        return dict(
+            telegram_id=row["telegram_id"],
+            username=row["username"],
+            first_name=row["first_name"],
+            tier=Database.tier_of(row),
+            premium_until=row["premium_until"],
+            created_at=row["created_at"],
+            tasks=dict(tasks),
+            payments=dict(pays),
+        )
+
     async def stats(self) -> dict:
         now_ts = int(time.time())
         start_ts, end_ts = self.day_bounds()

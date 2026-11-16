@@ -50,6 +50,12 @@ REGULAR_TASK_LIMIT: int = int(os.getenv("REGULAR_TASK_LIMIT", "6"))
 
 DEV_BYPASS_AUTH: bool = _bool("DEV_BYPASS_AUTH")
 
+# Секрет для админ-панельного API (админ-бот -> основной бот)
+PANEL_SECRET: str = os.getenv("PANEL_SECRET", "")
+
+# Токен АДМИН-БОТА: если задан — он стартует в том же процессе (второй Telegram-бот)
+ADMIN_BOT_TOKEN: str = os.getenv("ADMIN_BOT_TOKEN", "")
+
 DB_PATH: str = os.getenv("DB_PATH", str(BASE_DIR / "data" / "bot.db"))
 
 if not BOT_TOKEN or ":" not in BOT_TOKEN:

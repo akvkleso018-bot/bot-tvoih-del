@@ -48,6 +48,20 @@ async def main() -> None:
     scheduler.start()
     logging.info("Планировщик запущен (panic/deadline/free_reminder)")
 
+    # --- админ-бот в том же процессе (второй Telegram-бот, своя база = общая) ---
+    admin_task = None
+    admin_bot = None
+    if cfg.ADMIN_BOT_TOKEN:
+        from bot.admin_panel import router as admin_panel_router
+        admin_bot = Bot(cfg.ADMIN_BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+        dp2 = Dispatcher()
+        dp2["db"] = db
+        dp2["admin_bot"] = admin_bot
+        dp2["main_bot"] = bot
+        dp2.include_router(admin_panel_router)
+        admin_task = asyncio.create_task(dp2.start_polling(admin_bot))
+        logging.info("Админ-бот запущен в этом же процессе")
+
     try:
         await bot.set_my_commands([
             BotCommand(command="start", description="Открыть планировщик"),
@@ -58,9 +72,13 @@ async def main() -> None:
     try:
         await dp.start_polling(bot)
     finally:
+        if admin_task:
+            admin_task.cancel()
         scheduler.shutdown(wait=False)
         await runner.cleanup()
         await bot.session.close()
+        if admin_bot:
+            await admin_bot.session.close()
         await db.close()
 
 

@@ -1,6 +1,7 @@
 ﻿"""HTTP API РґР»СЏ Mini App (aiohttp) + РІР°Р»РёРґР°С†РёСЏ Telegram initData."""
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import html as html_mod
@@ -61,6 +62,12 @@ async def no_cache_middleware(request: web.Request, handler):
 
 @web.middleware
 async def auth_middleware(request: web.Request, handler):
+    # /api/panel/* — свой доступ по секрету (админ-бот), initData не нужен
+    if request.path.startswith("/api/panel"):
+        if not panel_ok(request):
+            return web.json_response({"ok": False, "error": "forbidden"}, status=403)
+        return await handler(request)
+
     if request.path.startswith("/api"):
         raw = request.headers.get("X-Init-Data", "")
         tg_user = validate_init_data(raw, cfg.BOT_TOKEN)
@@ -419,6 +426,90 @@ async def friends_get(request: web.Request) -> web.Response:
     )
 
 
+# ---------- панельное API (админ-бот) ----------
+
+def _week_start_ts() -> int:
+    from bot.profile import week_bounds
+    return week_bounds()[0]
+
+
+async def panel_summary(request: web.Request) -> web.Response:
+    db: Database = request.app["db"]
+    day_start, _ = db.day_bounds()
+    stats = await db.stats()
+    return ok(
+        stats=dict(
+            stats,
+            stars_today=await db.stars_sum(day_start),
+            stars_week=await db.stars_sum(_week_start_ts()),
+            new_users_today=await db.new_users_count(day_start),
+            new_users_week=await db.new_users_count(_week_start_ts()),
+        ),
+        pending_suggestions=len(await db.active_suggestions(limit=100)),
+    )
+
+
+async def panel_payments(request: web.Request) -> web.Response:
+    db: Database = request.app["db"]
+    try:
+        limit = int(request.query.get("limit", "15"))
+    except ValueError:
+        limit = 15
+    return ok(payments=await db.recent_payments(max(1, min(limit, 50))))
+
+
+async def panel_suggestions(request: web.Request) -> web.Response:
+    db: Database = request.app["db"]
+    return ok(suggestions=await db.active_suggestions())
+
+
+async def panel_suggestion_status(request: web.Request) -> web.Response:
+    db: Database = request.app["db"]
+    try:
+        sid = int(request.match_info["sid"])
+        data = await request.json()
+    except Exception:
+        return err("bad_json")
+    if not await db.set_suggestion_status(sid, str(data.get("status", ""))):
+        return err("bad_status_or_not_found", 404)
+    return ok()
+
+
+async def panel_broadcast(request: web.Request) -> web.Response:
+    """Рассылка от ОСНОВНОГО бота (его знают все пользователи)."""
+    bot: Bot = request.app["bot"]
+    db: Database = request.app["db"]
+    try:
+        data = await request.json()
+    except Exception:
+        return err("bad_json")
+    text = str(data.get("text", "")).strip()[:4000]
+    if not text:
+        return err("empty_text")
+
+    sent, failed = 0, 0
+    for uid in await db.all_user_ids():
+        try:
+            await bot.send_message(uid, text)
+            sent += 1
+        except Exception:
+            failed += 1
+        await asyncio.sleep(0.05)
+    return ok(sent=sent, failed=failed)
+
+
+async def panel_user(request: web.Request) -> web.Response:
+    db: Database = request.app["db"]
+    try:
+        uid = int(request.match_info["uid"])
+    except ValueError:
+        return err("bad_id")
+    detail = await db.user_detail(uid)
+    if not detail:
+        return err("not_found", 404)
+    return ok(user=detail)
+
+
 async def tasks_post(request: web.Request) -> web.Response:
     db: Database = request.app["db"]
     uid = request["user_id"]
@@ -540,6 +631,14 @@ def build_app(bot: Bot, db: Database) -> web.Application:
     app.router.add_delete("/api/friends/{public_id}", friend_remove)
     app.router.add_post("/api/friends/{public_id}/accept", friend_accept)
     app.router.add_post("/api/friends/{public_id}/decline", friend_decline)
+
+    # панельное API для админ-бота (доступ по X-Panel-Token)
+    app.router.add_get("/api/panel/summary", panel_summary)
+    app.router.add_get("/api/panel/payments", panel_payments)
+    app.router.add_get("/api/panel/suggestions", panel_suggestions)
+    app.router.add_post("/api/panel/suggestions/{sid}/status", panel_suggestion_status)
+    app.router.add_post("/api/panel/broadcast", panel_broadcast)
+    app.router.add_get("/api/panel/user/{uid}", panel_user)
     app.router.add_get("/api/admin/stats", admin_stats)
     app.router.add_get("/api/admin/suggestions", admin_suggestions)
     app.router.add_post("/api/admin/suggestions/{sid}/status", admin_suggestion_status)
