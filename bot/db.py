@@ -79,6 +79,11 @@ CREATE TABLE IF NOT EXISTS awards (
     created_at INTEGER,
     UNIQUE (week_start, place)
 );
+
+CREATE TABLE IF NOT EXISTS meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT
+);
 """
 
 # «Навсегда» = 2100-01-01 UTC — со всеми существующими проверками работает как бессрочность
@@ -248,19 +253,50 @@ class Database:
     async def user_by_public_id(self, public_id: str):
         return await self._one("SELECT * FROM users WHERE public_id = ?", (public_id,))
 
+    # ---------- meta (настройки/флаги в БД) ----------
+
+    async def get_meta(self, key: str) -> str:
+        row = await self._one("SELECT value FROM meta WHERE key = ?", (key,))
+        return row["value"] if row else ""
+
+    async def set_meta(self, key: str, value: str) -> None:
+        await self.conn.execute(
+            "INSERT INTO meta (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, value),
+        )
+        await self.conn.commit()
+
+    async def top_reset_ts(self) -> int:
+        try:
+            return int(await self.get_meta("top_reset_at") or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    async def reset_top(self) -> int:
+        """Сброс топа недели: очки считаются только с этого момента."""
+        ts = int(time.time())
+        await self.set_meta("top_reset_at", str(ts))
+        return ts
+
     async def weekly_leaderboard(
         self, week_start: int, week_end: int, ids: list[int] | None = None, limit: int = 50
     ):
         """Честный топ недели: очки только за реально сделанные задачи
-        (в срок ×10, с опозданием ×3). Накрутить добавлением задач нельзя."""
-        params: list = [week_start, week_end] * 3
+        (в срок ×10, с опозданием ×3). Накрутить добавлением задач нельзя.
+
+        После сброса топа (meta top_reset_at) очки считаются только
+        за задачи, выполненные позже момента сброса."""
+        reset_ts = await self.top_reset_ts()
+        eff_start = max(week_start, reset_ts) if reset_ts else week_start
+        params: list = [eff_start, week_end] * 3
         where = ""
         if ids is not None:
             if not ids:
                 return []
             marks = ",".join("?" for _ in ids)
             where = f"WHERE u.telegram_id IN ({marks})"
-            params = [week_start, week_end] * 3 + list(ids)
+            params = [eff_start, week_end] * 3 + list(ids)
         rows = await self._all(
             f"""SELECT u.telegram_id, u.public_id, u.first_name, u.tier,
                   COALESCE(SUM(CASE WHEN t.done = 1 AND t.completed_at >= ? AND t.completed_at < ?
