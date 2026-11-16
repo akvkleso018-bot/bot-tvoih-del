@@ -18,27 +18,34 @@ from bot import config as cfg
 
 router = Router()
 
-SUBSCRIPTION_TEXT = (
-    "Подписки «Бота твоих дел»:\n\n"
-    "<b>Обычная</b> — 6 задач в день, Режим паники вечером и жёсткие напоминания:\n"
-    "• неделя — 150 ⭐ · месяц — 400 ⭐\n"
-    "• год — 1300 ⭐ · навсегда — 3000 ⭐\n\n"
-    "<b>Elite</b> — безлимит задач, всё то же + максимум свободы:\n"
-    "• неделя — 350 ⭐ · месяц — 800 ⭐\n"
-    "• год — 2500 ⭐ · навсегда — 4500 ⭐\n\n"
-    "Без подписки — 2 задачи в день.\n"
-    "Выбери тариф и период в приложении:"
-    "\n\n——— English ———\n\n"
-    "Plans of “Your Deals Bot”:\n\n"
-    "<b>Standard</b> — 6 tasks a day, evening Panic mode and hard reminders:\n"
-    "• week — 150 ⭐ · month — 400 ⭐\n"
-    "• year — 1300 ⭐ · forever — 3000 ⭐\n\n"
-    "<b>Elite</b> — unlimited tasks, plus everything above:\n"
-    "• week — 350 ⭐ · month — 800 ⭐\n"
-    "• year — 2500 ⭐ · forever — 4500 ⭐\n\n"
-    "No subscription — 2 tasks a day.\n"
-    "Pick a plan and period in the app:"
-)
+
+def _p(tier: str, period: str) -> int:
+    return cfg.SUBSCRIPTION_PLANS[tier][period]["stars"]
+
+
+def subscription_text() -> str:
+    """Цены берутся из конфига — текст не разойдётся с инвойсами."""
+    return (
+        "Подписки «Бота твоих дел»:\n\n"
+        "<b>Обычная</b> — 6 задач в день, Режим паники вечером и жёсткие напоминания:\n"
+        f"• неделя — {_p('regular', 'week')} ⭐ · месяц — {_p('regular', 'month')} ⭐\n"
+        f"• год — {_p('regular', 'year')} ⭐ · навсегда — {_p('regular', 'forever')} ⭐\n\n"
+        "<b>Elite</b> — безлимит задач, всё то же + максимум свободы:\n"
+        f"• неделя — {_p('elite', 'week')} ⭐ · месяц — {_p('elite', 'month')} ⭐\n"
+        f"• год — {_p('elite', 'year')} ⭐ · навсегда — {_p('elite', 'forever')} ⭐\n\n"
+        "Без подписки — 2 задачи в день.\n"
+        "Выбери тариф и период в приложении:"
+        "\n\n——— English ———\n\n"
+        "Plans of “Your Deals Bot”:\n\n"
+        "<b>Standard</b> — 6 tasks a day, evening Panic mode and hard reminders:\n"
+        f"• week — {_p('regular', 'week')} ⭐ · month — {_p('regular', 'month')} ⭐\n"
+        f"• year — {_p('regular', 'year')} ⭐ · forever — {_p('regular', 'forever')} ⭐\n\n"
+        "<b>Elite</b> — unlimited tasks, plus everything above:\n"
+        f"• week — {_p('elite', 'week')} ⭐ · month — {_p('elite', 'month')} ⭐\n"
+        f"• year — {_p('elite', 'year')} ⭐ · forever — {_p('elite', 'forever')} ⭐\n\n"
+        "No subscription — 2 tasks a day.\n"
+        "Pick a plan and period in the app:"
+    )
 
 SUBS_KB = InlineKeyboardMarkup(inline_keyboard=[[
     InlineKeyboardButton(text="Выбрать подписку", web_app=WebAppInfo(url=cfg.WEBAPP_URL))
@@ -47,13 +54,13 @@ SUBS_KB = InlineKeyboardMarkup(inline_keyboard=[[
 
 @router.message(Command("premium"))
 async def cmd_premium(message: Message) -> None:
-    await message.answer(SUBSCRIPTION_TEXT, reply_markup=SUBS_KB)
+    await message.answer(subscription_text(), reply_markup=SUBS_KB)
 
 
 @router.callback_query(F.data == "buy_premium")
 async def cb_buy_premium(cb: CallbackQuery) -> None:
     await cb.answer()
-    await cb.message.answer(SUBSCRIPTION_TEXT, reply_markup=SUBS_KB)
+    await cb.message.answer(subscription_text(), reply_markup=SUBS_KB)
 
 
 @router.pre_checkout_query()
