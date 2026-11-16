@@ -34,7 +34,7 @@ FOREVER_TS = 4102444800
 @router.callback_query.middleware
 async def admin_only(handler, event, data):
     user = getattr(event, "from_user", None)
-    if not user or user.id != cfg.ADMIN_ID:
+    if not user or user.id not in cfg.ADMIN_IDS:
         if isinstance(event, CallbackQuery):
             await event.answer("⛔ Нет доступа", show_alert=True)
         else:
