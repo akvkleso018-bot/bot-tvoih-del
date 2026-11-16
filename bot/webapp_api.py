@@ -516,15 +516,19 @@ async def panel_broadcast(request: web.Request) -> web.Response:
     if not text:
         return err("empty_text")
 
+    safe = html_mod.escape(text)  # бот шлёт в HTML-режиме: <, > и & ломают разметку
     sent, failed = 0, 0
+    last_err = ""
     for uid in await db.all_user_ids():
         try:
-            await bot.send_message(uid, text)
+            await bot.send_message(uid, safe)
             sent += 1
-        except Exception:
+        except Exception as e:
             failed += 1
+            if not last_err:
+                last_err = str(e)[:160]
         await asyncio.sleep(0.05)
-    return ok(sent=sent, failed=failed)
+    return ok(sent=sent, failed=failed, last_error=last_err)
 
 
 async def panel_user(request: web.Request) -> web.Response:
