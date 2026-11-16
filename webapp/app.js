@@ -94,6 +94,7 @@
       addPlaceholder: "Что нужно сделать?", listening: "Слушаю…",
       voiceUnsupported: "Голосовой ввод не поддерживается на этом устройстве", voiceError: "Не удалось распознать речь",
       deadlineTitle: "Дедлайн", deadlineSummary: "Дедлайн: ", today: "сегодня",
+      dpHours: "Часы", dpMinutes: "Минуты",
       deadlinePast: "Это время уже прошло — выбери другой день или время", setDeadline: "Поставить дедлайн",
       subTitle: "Подписка", subPick: "Выбери тариф и период",
       planRegular: "Обычная", planElite: "Elite",
@@ -160,6 +161,7 @@
       addPlaceholder: "What needs to be done?", listening: "Listening…",
       voiceUnsupported: "Voice input is not supported on this device", voiceError: "Could not recognize speech",
       deadlineTitle: "Deadline", deadlineSummary: "Deadline: ", today: "today",
+      dpHours: "Hours", dpMinutes: "Minutes",
       deadlinePast: "That time has passed — pick another day or time", setDeadline: "Set deadline",
       subTitle: "Subscription", subPick: "Pick a plan and period",
       planRegular: "Standard", planElite: "Elite",
@@ -1390,7 +1392,7 @@
 
   var TIME_CHIPS = ["09:00", "13:00", "18:00", "21:00", "23:59"];
   var DP_HOURS = (function () { var a = []; for (var h = 0; h < 24; h++) a.push(pad2(h)); return a; })();
-  var DP_MINS = (function () { var a = []; for (var m2 = 0; m2 < 60; m2++) a.push(pad2(m2)); return a; })();
+  var DP_MINS5 = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
 
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
 
@@ -1464,6 +1466,7 @@
     for (var day = 1; day <= days; day++) cells.push(day);
 
     var tp = time[0].split(":");
+    var setHM = function (h, m2) { time[1](pad2(h) + ":" + pad2(m2)); };
     var pickTs = function () {
       return Math.floor(new Date(sel[0].y, sel[0].m, sel[0].d, Number(tp[0]), Number(tp[1]), 0, 0).getTime() / 1000);
     };
@@ -1512,19 +1515,32 @@
             })}
           </div>
 
-          <div className="dp-time-row">
-            <select className="dp-time-select"
-              value=${tp[0]}
-              onChange=${function (e) { haptic("light"); time[1](e.target.value + ":" + tp[1]); }}>
-              ${DP_HOURS.map(function (h) { return html`<option key=${h} value=${h}>${h}</option>`; })}
-            </select>
-            <span className="dp-time-colon">:</span>
-            <select className="dp-time-select"
-              value=${tp[1]}
-              onChange=${function (e) { haptic("light"); time[1](tp[0] + ":" + e.target.value); }}>
-              ${DP_MINS.map(function (m3) { return html`<option key=${m3} value=${m3}>${m3}</option>`; })}
-            </select>
-            <span className="dp-time-cap">${t("timeFree")}</span>
+          <div className="dp-tlabel">${t("dpHours")}</div>
+          <div className="dp-tgrid">
+            ${DP_HOURS.map(function (h, hIdx) {
+              var on = Number(tp[0]) === hIdx;
+              return html`<button key=${h} type="button"
+                className=${"dp-tcell pressable" + (on ? " dp-tcell--on" : "")}
+                onClick=${function () { haptic("light"); setHM(hIdx, Number(tp[1])); }}>${h}</button>`;
+            })}
+          </div>
+
+          <div className="dp-tlabel">${t("dpMinutes")} · ${t("timeFree")}</div>
+          <div className="dp-tgrid">
+            ${DP_MINS5.map(function (mm, mIdx) {
+              var mv = mIdx * 5;
+              var on = Math.floor(Number(tp[1]) / 5) * 5 === mv;
+              return html`<button key=${mm} type="button"
+                className=${"dp-tcell pressable" + (on ? " dp-tcell--on" : "")}
+                onClick=${function () { haptic("light"); setHM(Number(tp[0]), mv); }}>${mm}</button>`;
+            })}
+          </div>
+          <div className="dp-min-adj">
+            <button type="button" className="dp-min-btn pressable"
+              onClick=${function () { haptic("light"); var m4 = (Number(tp[1]) + 59) % 60; setHM(Number(tp[0]), m4); }}>−1 мин</button>
+            <button type="button" className="dp-min-btn pressable"
+              onClick=${function () { haptic("light"); var m5 = (Number(tp[1]) + 1) % 60; setHM(Number(tp[0]), m5); }}>+1 мин</button>
+            <span className="dp-time-display">${tp[0]}:${tp[1]}</span>
           </div>
 
           <div className="dp-chips">
