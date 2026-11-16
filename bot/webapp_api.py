@@ -181,9 +181,11 @@ async def suggest_post(request: web.Request) -> web.Response:
         data = await request.json()
     except Exception:
         return err("bad_json")
-    text = str(data.get("text", "")).strip()[:500]
+    text = str(data.get("text", "")).strip()
     if len(text) < 3:
         return err("too_short")
+    if len(text) > 500:
+        return err("too_long", 400)
 
     if await db.pending_suggestions_count(uid) >= MAX_PENDING_SUGGESTIONS:
         return err("too_many_pending", 429)
@@ -221,8 +223,12 @@ async def admin_suggestion_status(request: web.Request) -> web.Response:
         data = await request.json()
     except Exception:
         return err("bad_json")
-    if not await db.set_suggestion_status(sid, str(data.get("status", ""))):
+    status = str(data.get("status", ""))
+    sg = await db.get_suggestion(sid)
+    if not await db.set_suggestion_status(sid, status):
         return err("bad_status_or_not_found", 404)
+    # уведомляем автора идеи (через основной бот)
+    await _notify_suggestion_author(request.app["bot"], sg, status)
     return ok()
 
 
@@ -483,6 +489,21 @@ async def panel_suggestion_status(request: web.Request) -> web.Response:
     return ok()
 
 
+async def _notify_suggestion_author(bot: Bot, sg: dict, status: str) -> None:
+    """Автору идеи — уведомление о решении (через основной бот)."""
+    if not sg or not sg.get("user_id") or status not in ("done", "declined"):
+        return
+    short = html_mod.escape((sg.get("text") or "")[:100])
+    if status == "done":
+        msg = f"✅ Твою идею приняли: «{short}»\n\nСпасибо за вклад в «Бот твоих дел»!"
+    else:
+        msg = f"❌ Твою идею отклонили: «{short}»\n\nСпасибо, что поделился — присылай ещё!"
+    try:
+        await bot.send_message(int(sg["user_id"]), msg)
+    except Exception:
+        log.warning("Не удалось уведомить автора идеи #%s", sg.get("id"))
+
+
 async def panel_broadcast(request: web.Request) -> web.Response:
     """Рассылка от ОСНОВНОГО бота (его знают все пользователи)."""
     bot: Bot = request.app["bot"]
@@ -621,7 +642,7 @@ def build_app(bot: Bot, db: Database) -> web.Application:
     app.router.add_get("/", root)
     app.router.add_get("/webapp", index)
     # РІРµСЂСЃРёРѕРЅРёСЂРѕРІР°РЅРЅС‹Р№ РїСѓС‚СЊ: Р»СЋР±РѕР№ РєСЌС€ (WebView, Cloudflare) РЅРµ СЃРјРѕР¶РµС‚ РѕС‚РґР°С‚СЊ СЃС‚Р°СЂСЊС‘
-    app.router.add_static("/static/v26/", WEBAPP_DIR)
+    app.router.add_static("/static/v27/", WEBAPP_DIR)
     app.router.add_static("/static/", WEBAPP_DIR)
 
     app.router.add_get("/api/me", tasks_get)  # СЃРѕРІРјРµСЃС‚РёРјРѕРµ РёРјСЏ: /api/me -> С‚Рµ Р¶Рµ РґР°РЅРЅС‹Рµ
