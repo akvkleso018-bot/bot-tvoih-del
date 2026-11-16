@@ -244,7 +244,8 @@
 
   function applySettings(s) {
     var r = document.documentElement;
-    r.setAttribute("data-theme", "dark"); /* светлая тема удалена — приложение всегда тёмное */
+    /* светлая тема удалена: всё остальное доступно, light превращается в dark */
+    r.setAttribute("data-theme", s.theme === "light" ? "dark" : (s.theme || "dark"));
     r.setAttribute("data-fs", s.fs);
     r.setAttribute("data-blur", "on"); /* стекло всегда включено */
     r.setAttribute("data-anim", isOn(s.anim) ? "on" : "off");
@@ -260,7 +261,7 @@
       });
     }
     r.style.setProperty("--font", FONTS[s.font] ? FONTS[s.font].css : FONTS.system.css);
-    var meta = THEME_META.dark;
+    var meta = (s.theme && s.theme !== "light" && THEME_META[s.theme]) ? THEME_META[s.theme] : THEME_META.dark;
     try { if (tg.setHeaderColor) tg.setHeaderColor(meta.header); } catch (e) {}
     try { if (tg.setBackgroundColor) tg.setBackgroundColor(meta.bg); } catch (e) {}
   }
@@ -1047,6 +1048,20 @@
           </div>
 
           <div className="set-section">
+            <div className="set-label">${t("theme")}</div>
+            <div className="theme-grid">
+              ${Object.keys(THEME_META).filter(function (id) { return id !== "light"; }).map(function (id) {
+                return html`<button type="button" key=${id}
+                  className=${"theme-card pressable" + ((cur.theme === id || (id === "dark" && cur.theme === "light")) ? " theme-card--on" : "")}
+                  onClick=${function () { ch({ theme: id }); }}>
+                  <div className="theme-prev" style=${{ background: THEME_META[id].prev }}></div>
+                  <div className="theme-name">${THEME_NAMES[cur.lang][id]}</div>
+                </button>`;
+              })}
+            </div>
+          </div>
+
+          <div className="set-section">
             <div className="set-label">${t("accent")}</div>
             <div className="dot-row">
               <button type="button" key="auto"
@@ -1423,6 +1438,9 @@
     var view = useState(null);
     var sel = useState(null);
     var time = useState("23:59");
+    /* хуки — только до условного return, иначе порядок хуков ломается */
+    var sheetRef = useRef(null);
+    var drag = useRef(null);
 
     useEffect(function () {
       if (!props.open) return;
@@ -1473,8 +1491,6 @@
     }
 
     /* свайп вниз по шапке шита — закрыть без применения */
-    var sheetRef = useRef(null);
-    var drag = useRef(null);
     var onDragStart = function (e) {
       drag.current = { y0: e.touches[0].clientY, dy: 0 };
     };
