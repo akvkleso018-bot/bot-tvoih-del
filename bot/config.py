@@ -15,7 +15,9 @@ def _bool(name: str, default: str = "false") -> bool:
     return os.getenv(name, default).lower() in ("1", "true", "yes", "on")
 
 
-BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
+# USER_BOT_TOKEN перекрывает платформенный BOT_TOKEN: нужен, когда на хостинге
+# BOT_TOKEN (read-only) занят токеном админ-бота
+BOT_TOKEN: str = os.getenv("USER_BOT_TOKEN") or os.getenv("BOT_TOKEN", "")
 ADMIN_ID: int = int(os.getenv("ADMIN_ID", "0"))
 
 WEBAPP_URL: str = os.getenv("WEBAPP_URL", "https://example.com/webapp")
