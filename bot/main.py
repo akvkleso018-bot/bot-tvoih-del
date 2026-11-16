@@ -61,6 +61,19 @@ async def main() -> None:
         dp2.include_router(admin_panel_router)
         admin_task = asyncio.create_task(dp2.start_polling(admin_bot))
         logging.info("Админ-бот запущен в этом же процессе")
+        try:
+            await admin_bot.set_my_commands([
+                BotCommand(command="start", description="Открыть панель"),
+                BotCommand(command="stats", description="Сводка"),
+                BotCommand(command="users", description="Все пользователи"),
+                BotCommand(command="user", description="Карточка игрока: /user <id>"),
+                BotCommand(command="payments", description="Последние платежи"),
+                BotCommand(command="suggestions", description="Идеи пользователей"),
+                BotCommand(command="broadcast", description="Рассылка: /broadcast <текст>"),
+                BotCommand(command="ping", description="Статус системы"),
+            ])
+        except Exception:
+            logging.warning("Не удалось установить команды админ-бота")
 
     try:
         await bot.set_my_commands([
