@@ -16,6 +16,17 @@ router = Router()
 
 SEP = "\n\n——— English ———\n\n"
 
+
+def _prices(tier: str, lang: str = "ru") -> str:
+    """Строка цен из конфига — тексты не разойдутся с реальными инвойсами."""
+    p = cfg.SUBSCRIPTION_PLANS[tier]
+    if lang == "ru":
+        return (f"неделя {p['week']['stars']}⭐ · месяц {p['month']['stars']}⭐ · "
+                f"год {p['year']['stars']}⭐ · навсегда {p['forever']['stars']}⭐")
+    return (f"week {p['week']['stars']}⭐ · month {p['month']['stars']}⭐ · "
+            f"year {p['year']['stars']}⭐ · forever {p['forever']['stars']}⭐")
+
+
 WELCOME_RU = (
     "Привет, <b>{name}</b>! 👋\n\n"
     "Я — <b>Бот твоих дел</b>: превращаю хаос дел в понятный план на день.\n\n"
@@ -31,8 +42,8 @@ WELCOME_RU = (
     "• топ-3 каждый понедельник получают подписку: +3/+2/+1 дня\n"
     "• добавляй игроков в друзья (заявки, анонимные профили) и соревнуйся среди друзей\n\n"
     "👑 <b>Подписки</b>\n"
-    "• <b>Обычная</b> — 6 задач в день: неделя 150⭐ · месяц 400⭐ · год 1300⭐ · навсегда 3000⭐\n"
-    "• <b>Elite</b> — безлимит задач: неделя 350⭐ · месяц 800⭐ · год 2500⭐ · навсегда 4500⭐\n"
+    "• <b>Обычная</b> — 6 задач в день: {prices_reg}\n"
+    "• <b>Elite</b> — безлимит задач: {prices_elite}\n"
     "• без подписки — 2 задачи в день\n\n"
     "🎨 <b>Настройки</b> (шестерёнка в приложении): 10 тем, акцентные цвета, шрифты,\n"
     "размер текста, язык RU/EN и другое.\n\n"
@@ -55,8 +66,8 @@ WELCOME_EN = (
     "• top-3 get a subscription every Monday: +3/+2/+1 days\n"
     "• add players as friends (requests, anonymous profiles) and compete among friends\n\n"
     "👑 <b>Subscriptions</b>\n"
-    "• <b>Standard</b> — 6 tasks a day: week 150⭐ · month 400⭐ · year 1300⭐ · forever 3000⭐\n"
-    "• <b>Elite</b> — unlimited tasks: week 350⭐ · month 800⭐ · year 2500⭐ · forever 4500⭐\n"
+    "• <b>Standard</b> — 6 tasks a day: {prices_reg_en}\n"
+    "• <b>Elite</b> — unlimited tasks: {prices_elite_en}\n"
     "• no subscription — 2 tasks a day\n\n"
     "🎨 <b>Settings</b> (gear icon in the app): 10 themes, accent colors, fonts,\n"
     "text size, RU/EN language and more.\n\n"
@@ -102,9 +113,17 @@ async def cmd_start(message: Message, db) -> None:
         gift = GIFT_RU + GIFT_EN
 
     await message.answer(
-        WELCOME_RU.format(name=message.from_user.first_name or "друг")
+        WELCOME_RU.format(
+            name=message.from_user.first_name or "друг",
+            prices_reg=_prices("regular"),
+            prices_elite=_prices("elite"),
+        )
         + SEP
-        + WELCOME_EN.format(name=message.from_user.first_name or "friend")
+        + WELCOME_EN.format(
+            name=message.from_user.first_name or "friend",
+            prices_reg_en=_prices("regular", "en"),
+            prices_elite_en=_prices("elite", "en"),
+        )
         + gift,
         reply_markup=main_kb(),
     )
