@@ -1287,7 +1287,7 @@
         { icon: "flame", title: "benPanicTitle", desc: "benPanicDesc" },
         { icon: "clock", title: "benRemTitle", desc: "benRemDesc" }
       ],
-      prices: { week: 150, month: 400, year: 1300, forever: 3000 }
+      prices: { week: 99, month: 249, year: 990, forever: 1990 }
     },
     elite: {
       benefits: [
@@ -1295,7 +1295,7 @@
         { icon: "flame", title: "benPanicTitle", desc: "benPanicDesc" },
         { icon: "clock", title: "benRemTitle", desc: "benRemDesc" }
       ],
-      prices: { week: 350, month: 800, year: 2500, forever: 4500 }
+      prices: { week: 149, month: 449, year: 1490, forever: 2990 }
     }
   };
 
