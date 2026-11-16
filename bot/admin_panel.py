@@ -466,15 +466,22 @@ async def on_press(cb: CallbackQuery, db: Database, main_bot: Bot, admin_bot: Bo
         if not text:
             await cb.answer("Текст рассылки устарел — отправь /broadcast заново", show_alert=True)
             return
+        safe = esc(text)  # бот шлёт в HTML-режиме: <, > и & в тексте ломают разметку
         sent, failed = 0, 0
+        last_err = ""
         for uid in await db.all_user_ids():
             try:
-                await main_bot.send_message(uid, text)
+                await main_bot.send_message(uid, safe)
                 sent += 1
-            except Exception:
+            except Exception as e:
                 failed += 1
+                if not last_err:
+                    last_err = str(e)[:160]
             await asyncio.sleep(0.05)
-        await cb.message.edit_text(f"📣 Рассылка завершена: {sent} доставлено, {failed} не удалось.")
+        report = f"📣 Рассылка завершена: {sent} доставлено, {failed} не удалось."
+        if failed and last_err:
+            report += f"\n⚠️ Причина: {esc(last_err)}"
+        await cb.message.edit_text(report)
         await cb.answer()
         return
 
